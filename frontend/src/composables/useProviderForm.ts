@@ -454,7 +454,8 @@ export function useProviderForm() {
         provider_name: editingImageProvider.value || undefined,
         api_key: imageForm.value.api_key || undefined,
         base_url: imageForm.value.base_url,
-        model: imageForm.value.model
+        model: imageForm.value.model,
+        endpoint_type: imageForm.value.endpoint_type
       })
       if (result.success) {
         alert('✅ ' + result.message)
@@ -476,7 +477,8 @@ export function useProviderForm() {
         provider_name: name,
         api_key: undefined,
         base_url: provider.base_url,
-        model: provider.model
+        model: provider.model,
+        endpoint_type: provider.endpoint_type
       })
       if (result.success) {
         alert('✅ ' + result.message)

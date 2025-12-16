@@ -299,6 +299,8 @@ export async function generateImagesPost(
   userImages?: File[],
   userTopic?: string
 ) {
+  let finished = false
+  let receivedAnyEvent = false
   try {
     // 将用户图片转换为 base64
     let userImagesBase64: string[] = []
@@ -361,6 +363,7 @@ export async function generateImagesPost(
 
         try {
           const data = JSON.parse(eventData)
+          receivedAnyEvent = true
 
           switch (eventType) {
             case 'progress':
@@ -374,15 +377,26 @@ export async function generateImagesPost(
               break
             case 'finish':
               onFinish(data)
+              finished = true
               break
           }
         } catch (e) {
           console.error('解析 SSE 数据失败:', e)
         }
       }
+      if (finished) break
     }
   } catch (error) {
-    onStreamError(error as Error)
+    const err = error as Error
+    const msg = (err?.message || '').toLowerCase()
+    const isAbortLike =
+      msg.includes('abort') ||
+      msg.includes('network error') ||
+      msg.includes('failed to fetch')
+    if (isAbortLike && (finished || receivedAnyEvent)) {
+      return
+    }
+    onStreamError(err)
   }
 }
 
@@ -440,6 +454,7 @@ export async function testConnection(config: {
   api_key?: string
   base_url?: string
   model: string
+  endpoint_type?: string
 }): Promise<{
   success: boolean
   message?: string

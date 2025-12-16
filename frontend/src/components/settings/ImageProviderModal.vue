@@ -234,6 +234,24 @@ const previewUrl = computed(() => {
 
   switch (props.formData.type) {
     case 'image_api':
+      // 如果用户自定义了 endpoint_type，直接显示完整路径
+      if (props.formData.endpoint_type) {
+         // 检查 base_url 是否已经包含了 endpoint 的开头部分（简单的去重逻辑）
+         // 这里只做简单展示，更复杂的逻辑在后端处理
+         const endpoint = props.formData.endpoint_type.startsWith('/') ? props.formData.endpoint_type : '/' + props.formData.endpoint_type
+         
+         // 简单的去重显示：如果 base_url 结尾是 /v1 且 endpoint 是 /v1/...
+         if (baseUrl.endsWith('/v1') && endpoint.startsWith('/v1')) {
+            return `${baseUrl.slice(0, -3)}${endpoint}`
+         }
+          // 如果 base_url 结尾是 /v3 且 endpoint 是 /v3/...
+         if (baseUrl.endsWith('/v3') && endpoint.startsWith('/v3')) {
+            return `${baseUrl.slice(0, -3)}${endpoint}`
+         }
+
+         return `${baseUrl}${endpoint}`
+      }
+
       if (endpointType.includes('chat')) {
         return `${baseUrl}/v1/chat/completions`
       }
