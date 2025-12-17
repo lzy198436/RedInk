@@ -224,6 +224,7 @@ export async function getHistoryList(
   page: number
   page_size: number
   total_pages: number
+  error?: string
 }> {
   const params: any = { page, page_size: pageSize }
   if (status) params.status = status
@@ -269,6 +270,7 @@ export async function deleteHistory(recordId: string): Promise<{
 export async function searchHistory(keyword: string): Promise<{
   success: boolean
   records: HistoryRecord[]
+  error?: string
 }> {
   const response = await axios.get(`${API_BASE_URL}/history/search`, {
     params: { keyword }
@@ -342,49 +344,55 @@ export async function generateImagesPost(
 
     const decoder = new TextDecoder()
     let buffer = ''
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
 
-    while (true) {
-      const { done, value } = await reader.read()
+        if (done) break
 
-      if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
 
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n\n')
-      buffer = lines.pop() || ''
+        for (const line of lines) {
+          if (!line.trim()) continue
 
-      for (const line of lines) {
-        if (!line.trim()) continue
+          const [eventLine, dataLine] = line.split('\n')
+          if (!eventLine || !dataLine) continue
 
-        const [eventLine, dataLine] = line.split('\n')
-        if (!eventLine || !dataLine) continue
+          const eventType = eventLine.replace('event: ', '').trim()
+          const eventData = dataLine.replace('data: ', '').trim()
 
-        const eventType = eventLine.replace('event: ', '').trim()
-        const eventData = dataLine.replace('data: ', '').trim()
+          try {
+            const data = JSON.parse(eventData)
+            receivedAnyEvent = true
 
-        try {
-          const data = JSON.parse(eventData)
-          receivedAnyEvent = true
-
-          switch (eventType) {
-            case 'progress':
-              onProgress(data)
-              break
-            case 'complete':
-              onComplete(data)
-              break
-            case 'error':
-              onError(data)
-              break
-            case 'finish':
-              onFinish(data)
-              finished = true
-              break
+            switch (eventType) {
+              case 'progress':
+                onProgress(data)
+                break
+              case 'complete':
+                onComplete(data)
+                break
+              case 'error':
+                onError(data)
+                break
+              case 'finish':
+                onFinish(data)
+                finished = true
+                break
+            }
+          } catch (e) {
+            console.error('解析 SSE 数据失败:', e)
           }
-        } catch (e) {
-          console.error('解析 SSE 数据失败:', e)
         }
       }
-      if (finished) break
+    } finally {
+      try {
+        reader.releaseLock()
+      } catch (e) {
+        void e
+      }
     }
   } catch (error) {
     const err = error as Error

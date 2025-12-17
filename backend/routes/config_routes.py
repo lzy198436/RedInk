@@ -300,6 +300,8 @@ def _test_provider_connection(provider_type: str, config: dict) -> dict:
 
     elif provider_type == 'image_api':
         return _test_image_api(config)
+    elif provider_type == 'wan2.6-t2i':
+        return _test_wan26_t2i(config)
 
     else:
         raise ValueError(f"不支持的类型: {provider_type}")
@@ -461,6 +463,96 @@ def _test_image_api(config: dict) -> dict:
             "success": False,
             "error": f"连接失败: {str(e)}"
         }
+
+
+def _test_wan26_t2i(config: dict) -> dict:
+    import requests
+
+    base_url = (config.get("base_url") or "https://dashscope.aliyuncs.com/api/v1").strip().rstrip("/")
+    if "/services/aigc/multimodal-generation/generation" in base_url:
+        base_url = base_url.split("/services/aigc/multimodal-generation/generation", 1)[0].rstrip("/")
+    if base_url.endswith("/api"):
+        base_url = f"{base_url}/v1"
+    elif "/api/" not in base_url and "dashscope" in base_url:
+        base_url = f"{base_url}/api/v1"
+    url = f"{base_url}/services/aigc/multimodal-generation/generation"
+
+    payload = {
+        "model": config.get("model") or "wan2.6-t2i",
+        "input": {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"text": "测试连接：你好，红墨"}],
+                }
+            ]
+        },
+        "parameters": {
+            "negative_prompt": "",
+            "prompt_extend": False,
+            "watermark": False,
+            "n": 1,
+            "size": "960*1280",
+        },
+    }
+
+    headers = {
+        "Authorization": f"Bearer {config['api_key']}",
+        "Content-Type": "application/json",
+    }
+
+    response = requests.post(url, json=payload, headers=headers, timeout=30)
+    logger.info(f"通义万相测试响应: status={response.status_code}, url={url}, body={response.text[:200]}")
+
+    if response.status_code == 200:
+        try:
+            data = response.json() if response.content else {}
+            output = data.get("output") or {}
+            results = output.get("results") or []
+            choices = output.get("choices") or []
+
+            has_result = bool(results)
+            if not has_result and isinstance(choices, list) and choices:
+                for choice in choices:
+                    if not isinstance(choice, dict):
+                        continue
+                    message = choice.get("message") or {}
+                    content = message.get("content") if isinstance(message, dict) else None
+                    if isinstance(content, list) and any(isinstance(p, dict) and p.get("image") for p in content):
+                        has_result = True
+                        break
+
+            if has_result:
+                return {
+                    "success": True,
+                    "message": "连接成功！通义万相文生图端点可用。"
+                }
+            return {
+                "success": True,
+                "message": "连接成功（HTTP 200），但未返回图片结果字段。请在实际生成时验证。"
+            }
+        except Exception:
+            return {
+                "success": True,
+                "message": "连接成功（HTTP 200）。"
+            }
+
+    if response.status_code == 401:
+        return {
+            "success": False,
+            "error": "连接失败：API Key 无效 (HTTP 401)"
+        }
+
+    if response.status_code in [400, 403]:
+        return {
+            "success": True,
+            "message": f"连接连通（HTTP {response.status_code}）。若生成失败，请检查模型名、参数或账户权限。"
+        }
+
+    return {
+        "success": False,
+        "error": f"连接失败：HTTP {response.status_code}: {response.text[:200]}"
+    }
 
 
 def _check_response(result_text: str) -> dict:

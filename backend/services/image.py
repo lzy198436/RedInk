@@ -192,6 +192,13 @@ class ImageService:
                         model=self.provider_config.get('model', 'nano-banana-2'),
                         reference_images=reference_images if reference_images else None,
                     )
+                elif self.provider_config.get('type') == 'wan2.6-t2i':
+                    logger.debug(f"  使用 通义万相 Wan2.6 生成器")
+                    image_data = self.generator.generate_image(
+                        prompt=prompt,
+                        aspect_ratio=self.provider_config.get('default_aspect_ratio', '3:4'),
+                        model=self.provider_config.get('model', 'wan2.6-t2i'),
+                    )
                 else:
                     logger.debug(f"  使用 OpenAI 兼容生成器")
                     image_data = self.generator.generate_image(

@@ -4,6 +4,7 @@ from .base import ImageGeneratorBase
 from .google_genai import GoogleGenAIGenerator
 from .openai_compatible import OpenAICompatibleGenerator
 from .image_api import ImageApiGenerator
+from .wan26_t2i import Wan26T2IGenerator
 
 
 class ImageGeneratorFactory:
@@ -15,6 +16,7 @@ class ImageGeneratorFactory:
         'openai': OpenAICompatibleGenerator,
         'openai_compatible': OpenAICompatibleGenerator,
         'image_api': ImageApiGenerator,
+        'wan2.6-t2i': Wan26T2IGenerator,
     }
 
     @classmethod

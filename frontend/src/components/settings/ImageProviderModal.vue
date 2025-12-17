@@ -58,7 +58,7 @@
             class="form-input"
             :value="formData.base_url"
             @input="updateField('base_url', ($event.target as HTMLInputElement).value)"
-            placeholder="例如: https://generativelanguage.googleapis.com"
+            :placeholder="baseUrlPlaceholder"
           />
           <span class="form-hint" v-if="previewUrl">
             预览: {{ previewUrl }}
@@ -205,7 +205,7 @@ function updateField(field: keyof FormData, value: string | boolean) {
 
 // 是否显示 Base URL
 const showBaseUrl = computed(() => {
-  return ['image_api', 'google_genai'].includes(props.formData.type)
+  return ['image_api', 'google_genai', 'wan2.6-t2i'].includes(props.formData.type)
 })
 
 // 是否显示端点类型
@@ -220,14 +220,34 @@ const modelPlaceholder = computed(() => {
       return '例如: imagen-3.0-generate-002'
     case 'image_api':
       return '例如: flux-pro'
+    case 'wan2.6-t2i':
+      return '例如: wan2.6-t2i'
     default:
       return '例如: gpt-4o'
+  }
+})
+
+const baseUrlPlaceholder = computed(() => {
+  switch (props.formData.type) {
+    case 'google_genai':
+      return '例如: https://generativelanguage.googleapis.com'
+    case 'image_api':
+      return '例如: https://api.openai.com'
+    case 'wan2.6-t2i':
+      return '例如: https://dashscope.aliyuncs.com/api/v1'
+    default:
+      return '例如: https://api.example.com'
   }
 })
 
 // 预览 URL
 const previewUrl = computed(() => {
   if (!props.formData.base_url) return ''
+
+  if (props.formData.type === 'wan2.6-t2i') {
+    const rawBaseUrl = props.formData.base_url.replace(/\/$/, '')
+    return `${rawBaseUrl}/services/aigc/multimodal-generation/generation`
+  }
 
   const baseUrl = props.formData.base_url.replace(/\/$/, '').replace(/\/v1$/, '')
   const endpointType = props.formData.endpoint_type || '/v1/images/generations'
