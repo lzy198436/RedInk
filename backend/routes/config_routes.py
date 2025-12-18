@@ -127,7 +127,7 @@ def create_config_blueprint():
         测试服务商连接
 
         请求体：
-        - type: 服务商类型（google_genai/google_gemini/openai_compatible/image_api）
+        - type: 服务商类型（google_genai/google_gemini/openai_compatible/image_api/wan2.6-t2i/modelscope_z_image）
         - provider_name: 服务商名称（用于从配置读取 API Key）
         - api_key: API Key（可选，若不提供则从配置读取）
         - base_url: Base URL（可选）
@@ -302,6 +302,8 @@ def _test_provider_connection(provider_type: str, config: dict) -> dict:
         return _test_image_api(config)
     elif provider_type == 'wan2.6-t2i':
         return _test_wan26_t2i(config)
+    elif provider_type == 'modelscope_z_image':
+        return _test_modelscope_z_image(config)
 
     else:
         raise ValueError(f"不支持的类型: {provider_type}")
@@ -537,13 +539,53 @@ def _test_wan26_t2i(config: dict) -> dict:
                 "message": "连接成功（HTTP 200）。"
             }
 
+
+def _test_modelscope_z_image(config: dict) -> dict:
+    import requests
+
+    base_url = ((config.get("base_url") or "https://api-inference.modelscope.cn")).strip().rstrip("/")
+    endpoint_type = ((config.get("endpoint_type") or "/v1/images/generations")).strip()
+    if not endpoint_type.startswith("/"):
+        endpoint_type = "/" + endpoint_type
+
+    url = f"{base_url}{endpoint_type}"
+    headers = {
+        "Authorization": f"Bearer {config['api_key']}",
+        "Content-Type": "application/json",
+        "X-ModelScope-Async-Mode": "true",
+    }
+    payload = {
+        "model": config.get("model") or "Tongyi-MAI/Z-Image-Turbo",
+        "prompt": "测试连接：你好，红墨",
+    }
+
+    response = requests.post(url, json=payload, headers=headers, timeout=20)
+    logger.info(f"ModelScope Z-Image 测试响应: status={response.status_code}, url={url}, body={response.text[:200]}")
+
+    if response.status_code == 200:
+        try:
+            data = response.json() if response.content else {}
+        except Exception:
+            data = {}
+
+        task_id = data.get("task_id") or data.get("id")
+        if task_id:
+            return {
+                "success": True,
+                "message": "连接成功！已创建异步任务。"
+            }
+        return {
+            "success": True,
+            "message": "连接成功（HTTP 200）。"
+        }
+
     if response.status_code == 401:
         return {
             "success": False,
             "error": "连接失败：API Key 无效 (HTTP 401)"
         }
 
-    if response.status_code in [400, 403]:
+    if response.status_code in [400, 403, 404]:
         return {
             "success": True,
             "message": f"连接连通（HTTP {response.status_code}）。若生成失败，请检查模型名、参数或账户权限。"

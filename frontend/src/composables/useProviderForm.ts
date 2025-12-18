@@ -16,7 +16,8 @@ export const textTypeOptions: TypeOption[] = [
 export const imageTypeOptions: TypeOption[] = [
   { value: 'image_api', label: '通用图片 API' },
   { value: 'google_genai', label: 'Google GenAI (Imagen)' },
-  { value: 'wan2.6-t2i', label: '通义万相 Wan2.6 (文生图V2)' }
+  { value: 'wan2.6-t2i', label: '通义万相 Wan2.6 (文生图V2)' },
+  { value: 'modelscope_z_image', label: '魔塔 ModelScope Z-Image-Turbo' }
 ]
 
 interface Provider {

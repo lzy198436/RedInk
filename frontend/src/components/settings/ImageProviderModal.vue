@@ -205,12 +205,12 @@ function updateField(field: keyof FormData, value: string | boolean) {
 
 // 是否显示 Base URL
 const showBaseUrl = computed(() => {
-  return ['image_api', 'google_genai', 'wan2.6-t2i'].includes(props.formData.type)
+  return ['image_api', 'google_genai', 'wan2.6-t2i', 'modelscope_z_image'].includes(props.formData.type)
 })
 
 // 是否显示端点类型
 const showEndpointType = computed(() => {
-  return props.formData.type === 'image_api'
+  return ['image_api', 'modelscope_z_image'].includes(props.formData.type)
 })
 
 // 模型占位符
@@ -222,6 +222,8 @@ const modelPlaceholder = computed(() => {
       return '例如: flux-pro'
     case 'wan2.6-t2i':
       return '例如: wan2.6-t2i'
+    case 'modelscope_z_image':
+      return '例如: Tongyi-MAI/Z-Image-Turbo'
     default:
       return '例如: gpt-4o'
   }
@@ -235,6 +237,8 @@ const baseUrlPlaceholder = computed(() => {
       return '例如: https://api.openai.com'
     case 'wan2.6-t2i':
       return '例如: https://dashscope.aliyuncs.com/api/v1'
+    case 'modelscope_z_image':
+      return '例如: https://api-inference.modelscope.cn'
     default:
       return '例如: https://api.example.com'
   }
@@ -247,6 +251,10 @@ const previewUrl = computed(() => {
   if (props.formData.type === 'wan2.6-t2i') {
     const rawBaseUrl = props.formData.base_url.replace(/\/$/, '')
     return `${rawBaseUrl}/services/aigc/multimodal-generation/generation`
+  }
+  if (props.formData.type === 'modelscope_z_image') {
+    const rawBaseUrl = props.formData.base_url.replace(/\/+$/, '')
+    return `${rawBaseUrl}/`
   }
 
   const baseUrl = props.formData.base_url.replace(/\/$/, '').replace(/\/v1$/, '')
